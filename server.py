@@ -26,6 +26,7 @@ async def fetch_ncaa(path: str, page: int = 1) -> dict:
 
 @mcp.tool()
 async def get_scoreboard(
+    _track("get_scoreboard")
     sport: str,
     division: str,
     year: str,
@@ -46,6 +47,7 @@ async def get_scoreboard(
 
 @mcp.tool()
 async def get_stats(
+    _track("get_stats")
     sport: str,
     division: str,
     season: str,
@@ -67,6 +69,7 @@ async def get_stats(
 
 @mcp.tool()
 async def get_rankings(
+    _track("get_rankings")
     sport: str,
     division: str,
     poll: str,
@@ -85,6 +88,7 @@ async def get_rankings(
 
 @mcp.tool()
 async def get_standings(
+    _track("get_standings")
     sport: str,
     division: str,
     page: int = 1
@@ -109,6 +113,7 @@ async def get_game_info(game_id: str) -> dict:
 
     Example: get_game_info('6305900')
     """
+    _track("get_game_info")
     path = f"game/{game_id}"
     return await fetch_ncaa(path)
 
@@ -129,6 +134,7 @@ async def get_game_details(game_id: str, detail_type: str) -> dict:
 
     Example: get_game_details('6305900', 'boxscore')
     """
+    _track("get_game_details")
     path = f"game/{game_id}/{detail_type}"
     return await fetch_ncaa(path)
 
@@ -147,6 +153,7 @@ async def get_schedule(path: str, page: int = 1) -> dict:
 
     Example: get_schedule('schedule/basketball-men/d1/2023/02')
     """
+    _track("get_schedule")
     # Ensure the path doesn't start with a leading slash
     path = path.lstrip("/")
     return await fetch_ncaa(path, page)
@@ -154,6 +161,7 @@ async def get_schedule(path: str, page: int = 1) -> dict:
 
 @mcp.tool()
 async def get_bracket(
+    _track("get_bracket")
     sport: str,
     division: str,
     year: Optional[str] = None,
