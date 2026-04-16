@@ -13,29 +13,35 @@ mcp = FastMCP("NCAA API")
 BASE_URL = "https://ncaa-api.henrygd.me"
 
 
+async def fetch_ncaa(path: str, page: int = 1) -> dict:
+    """Helper to fetch data from the NCAA API."""
+    params = {}
+    if page and page != 1:
+        params["page"] = page
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.get(f"{BASE_URL}/{path}", params=params)
+        response.raise_for_status()
+        return response.json()
+
+
 @mcp.tool()
 async def get_scoreboard(
     sport: str,
     division: str,
     year: str,
-    week_or_date: str,
+    week: str,
     conference: str = "all-conf",
     page: int = 1
 ) -> dict:
-    """Fetch live or recent scores for a given sport, division, and date.
-    Use this when a user asks about current scores, game results, or wants to
-    know who is playing on a specific date. The path mirrors ncaa.com scoreboard URLs.
-    
-    Examples:
-    - Football FBS week 13 of 2023: sport='football', division='fbs', year='2023', week_or_date='13'
-    - Basketball D1 on 11/15/2023: sport='basketball-men', division='d1', year='2023', week_or_date='11/15/2023'
     """
-    url = f"{BASE_URL}/scoreboard/{sport}/{division}/{year}/{week_or_date}/{conference}"
-    params = {"page": page}
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(url, params=params)
-        response.raise_for_status()
-        return response.json()
+    Fetch live or historical scores for a given sport, division, and date.
+    Use this when the user asks about current scores, game results, or wants
+    to see what games are happening for a specific sport and date.
+
+    Example: get_scoreboard('football', 'fbs', '2023', '13', 'all-conf')
+    """
+    path = f"scoreboard/{sport}/{division}/{year}/{week}/{conference}"
+    return await fetch_ncaa(path, page)
 
 
 @mcp.tool()
@@ -47,20 +53,16 @@ async def get_stats(
     category_id: str,
     page: int = 1
 ) -> dict:
-    """Retrieve NCAA statistics for a sport and division, either team or individual stats.
-    Use this when a user wants to see statistical leaders, team rankings by stat category,
-    or individual player stats.
-    
-    stat_type must be either 'team' or 'individual'.
-    category_id is a numeric string (e.g. '28' for rushing yards, '750' for individual passing).
-    Use 'current' for the current season or a specific year for season.
     """
-    url = f"{BASE_URL}/stats/{sport}/{division}/{season}/{stat_type}/{category_id}"
-    params = {"page": page}
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(url, params=params)
-        response.raise_for_status()
-        return response.json()
+    Fetch NCAA statistics for a sport and division, either team or individual stats.
+    Use this when the user wants to see statistical leaders, team performance data,
+    or individual player stats for a given sport and category.
+
+    stat_type should be 'team' or 'individual'.
+    Example: get_stats('football', 'fbs', 'current', 'team', '28')
+    """
+    path = f"stats/{sport}/{division}/{season}/{stat_type}/{category_id}"
+    return await fetch_ncaa(path, page)
 
 
 @mcp.tool()
@@ -70,20 +72,15 @@ async def get_rankings(
     poll: str,
     page: int = 1
 ) -> dict:
-    """Fetch current NCAA rankings for a sport and division from a specific poll or ranking system.
-    Use this when a user wants to see poll rankings, AP top 25, coaches poll, or other ranking systems.
-    
-    Examples:
-    - AP Top 25 football: sport='football', division='fbs', poll='associated-press'
-    - Coaches poll: poll='coaches'
-    - Women's basketball RPI: sport='basketball-women', division='d1', poll='ncaa-womens-basketball-rpi'
     """
-    url = f"{BASE_URL}/rankings/{sport}/{division}/{poll}"
-    params = {"page": page}
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(url, params=params)
-        response.raise_for_status()
-        return response.json()
+    Fetch NCAA rankings for a sport and division from a specific poll or ranking system.
+    Use this when the user asks about team rankings, polls, or standings in the national rankings.
+
+    Example: get_rankings('football', 'fbs', 'associated-press')
+    Poll options include: 'associated-press', 'coaches', 'cfp'
+    """
+    path = f"rankings/{sport}/{division}/{poll}"
+    return await fetch_ncaa(path, page)
 
 
 @mcp.tool()
@@ -92,104 +89,89 @@ async def get_standings(
     division: str,
     page: int = 1
 ) -> dict:
-    """Retrieve conference standings for a sport and division.
-    Use this when a user wants to see win-loss records, conference standings,
-    or how teams rank within their conference.
-    
-    Examples:
-    - Women's basketball D1: sport='basketball-women', division='d1'
-    - FBS football: sport='football', division='fbs'
     """
-    url = f"{BASE_URL}/standings/{sport}/{division}"
-    params = {"page": page}
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(url, params=params)
-        response.raise_for_status()
-        return response.json()
+    Fetch NCAA conference standings for a sport and division.
+    Use this when the user wants to see how teams rank within their conference,
+    win/loss records, or conference standings tables.
+
+    Example: get_standings('basketball-women', 'd1')
+    """
+    path = f"standings/{sport}/{division}"
+    return await fetch_ncaa(path, page)
 
 
 @mcp.tool()
 async def get_game_info(game_id: str) -> dict:
-    """Get general information about a specific NCAA game by its game ID.
-    Use this as the starting point when a user asks about a particular game to get
-    metadata like teams, date, venue, and final score.
-    
-    game_id is a numeric string found in ncaa.com game URLs (e.g. '6305900').
     """
-    url = f"{BASE_URL}/game/{game_id}"
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(url)
-        response.raise_for_status()
-        return response.json()
+    Fetch general information about a specific NCAA game by its ID.
+    Use this when the user wants basic details about a game such as
+    teams, date, location, score, or status.
+
+    Example: get_game_info('6305900')
+    """
+    path = f"game/{game_id}"
+    return await fetch_ncaa(path)
 
 
 @mcp.tool()
 async def get_game_details(game_id: str, detail_type: str) -> dict:
-    """Retrieve detailed data for a specific NCAA game.
-    Use this when a user wants in-depth game analysis, individual player performance,
-    or a full breakdown of how a game unfolded.
-    
-    detail_type options:
-    - 'boxscore': player/team box score
-    - 'play-by-play': sequence of plays
-    - 'scoring-summary': scoring events only
-    - 'team-stats': aggregated team statistics
-    
-    game_id is a numeric string (e.g. '6305900').
     """
-    valid_detail_types = {"boxscore", "play-by-play", "scoring-summary", "team-stats"}
-    if detail_type not in valid_detail_types:
-        return {
-            "error": f"Invalid detail_type '{detail_type}'. Must be one of: {', '.join(sorted(valid_detail_types))}"
-        }
-    url = f"{BASE_URL}/game/{game_id}/{detail_type}"
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(url)
-        response.raise_for_status()
-        return response.json()
+    Fetch detailed in-game data for a specific NCAA game including box score,
+    play-by-play, scoring summary, or team stats.
+    Use this when the user wants granular game details beyond basic info,
+    such as player stats, scoring drives, or a full play log.
+
+    detail_type options:
+      - 'boxscore': player/team box score
+      - 'play-by-play': full play log
+      - 'scoring-summary': scoring plays only
+      - 'team-stats': aggregated team statistics
+
+    Example: get_game_details('6305900', 'boxscore')
+    """
+    path = f"game/{game_id}/{detail_type}"
+    return await fetch_ncaa(path)
 
 
 @mcp.tool()
 async def get_schedule(path: str, page: int = 1) -> dict:
-    """Fetch the schedule of games for a specific team or sport.
-    Use this when a user wants to know upcoming or past games for a team,
-    including dates, opponents, and results.
-    
-    The path parameter should be the schedule path segment as used on ncaa.com.
-    Examples:
-    - Football uses year only: 'football/fbs/alabama/2023'
-    - Basketball uses year/month: 'basketball-men/d1/2023/02'
     """
-    # Strip leading slash if present
+    Fetch the schedule of games for a specific team or sport.
+    Use this when the user wants to see upcoming or past games,
+    a team's schedule for a season, or a list of matchups.
+
+    The path should follow NCAA.com conventions:
+      - 'schedule/football/fbs' for overall FBS football schedule
+      - 'schedule/basketball-men/d1/2023/02' for a specific month
+      - 'schedule/football/fbs/alabama' for a team schedule
+
+    Example: get_schedule('schedule/basketball-men/d1/2023/02')
+    """
+    # Ensure the path doesn't start with a leading slash
     path = path.lstrip("/")
-    url = f"{BASE_URL}/schedule/{path}"
-    params = {"page": page}
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(url, params=params)
-        response.raise_for_status()
-        return response.json()
+    return await fetch_ncaa(path, page)
 
 
 @mcp.tool()
-async def get_bracket(path: str, page: int = 1) -> dict:
-    """Retrieve NCAA tournament bracket data including matchups, results, and advancement.
-    Use this when a user asks about March Madness, tournament brackets, or playoff structures.
-    
-    The path parameter mirrors the ncaa.com bracket page path.
-    Examples:
-    - Men's basketball 2023: 'basketball-men/d1/2023'
-    - Women's basketball 2024: 'basketball-women/d1/2024'
-    
-    Note: FBS football brackets are only available from 2025 onwards.
+async def get_bracket(
+    sport: str,
+    division: str,
+    year: Optional[str] = None,
+    page: int = 1
+) -> dict:
     """
-    # Strip leading slash if present
-    path = path.lstrip("/")
-    url = f"{BASE_URL}/brackets/{path}"
-    params = {"page": page}
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(url, params=params)
-        response.raise_for_status()
-        return response.json()
+    Fetch tournament bracket data for NCAA championships.
+    Use this when the user wants to see bracket matchups, tournament results,
+    or March Madness bracket information.
+
+    Example: get_bracket('basketball-men', 'd1', '2023')
+    Omit year for the current tournament.
+    """
+    if year:
+        path = f"brackets/{sport}/{division}/{year}"
+    else:
+        path = f"brackets/{sport}/{division}"
+    return await fetch_ncaa(path, page)
 
 
 
